@@ -84,6 +84,14 @@ export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRef<T>
  * count.value // -> 1
  * ```
  */
+
+/**
+ * 其实 effect 才是响应式的核心，在 mountComponent、doWatch、reactive 中被调用。
+ * 在 reactive 中 通过 Proxy 实现劫持。
+ * 在 Proxy 劫持set时调用 trigger。
+ * 然后在 targger 中清除收集并触发目标的所有 effects
+ * 最终触发 patch 游戏结束。
+ */
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
 export function reactive(target: object) {
   // if trying to observe a readonly proxy, return the readonly version.
@@ -170,6 +178,12 @@ export function shallowReadonly<T extends object>(
   )
 }
 
+/**
+ * 创建响应式对象
+ * 1. 防止重复劫持
+ * 2. 只读劫持
+ * 3. 根据不同类型选择不同的劫持方式（collectionHandlers 或 baseHandlers）
+ */
 function createReactiveObject(
   target: Target,
   isReadonly: boolean,
@@ -183,6 +197,9 @@ function createReactiveObject(
     }
     return target
   }
+  /**
+   * 如果target已经被代理，就返回target
+   */
   // target is already a Proxy, return it.
   // exception: calling readonly() on a reactive object
   if (
@@ -201,6 +218,10 @@ function createReactiveObject(
   if (targetType === TargetType.INVALID) {
     return target
   }
+  /**
+   * collectionHandlers: 对引用类型的劫持
+   * baseHandlers: 对进行基本类型的劫持
+   */
   const proxy = new Proxy(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers

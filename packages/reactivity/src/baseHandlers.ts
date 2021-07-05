@@ -37,6 +37,9 @@ const builtInSymbols = new Set(
     .filter(isSymbol)
 )
 
+/**
+ * 创建get劫持
+ */
 const get = /*#__PURE__*/ createGetter()
 const shallowGet = /*#__PURE__*/ createGetter(false, true)
 const readonlyGet = /*#__PURE__*/ createGetter(true)
@@ -44,6 +47,9 @@ const shallowReadonlyGet = /*#__PURE__*/ createGetter(true, true)
 
 const arrayInstrumentations = /*#__PURE__*/ createArrayInstrumentations()
 
+/**
+ * 通过 arrayInstrumentations 得到 hasOwn(arrayInstrumentations, key) 就是指 ['includes', 'indexOf', 'lastIndexOf']
+ */
 function createArrayInstrumentations() {
   const instrumentations: Record<string, Function> = {}
   // instrument identity-sensitive Array methods to account for possible reactive
@@ -55,9 +61,15 @@ function createArrayInstrumentations() {
       for (let i = 0, l = this.length; i < l; i++) {
         track(arr, TrackOpTypes.GET, i + '')
       }
+      /**
+       * 我们首先 以原始args 运行该方法（可能是反应性的）
+       */
       // we run the method using the original args first (which may be reactive)
       const res = method.apply(arr, args)
       if (res === -1 || res === false) {
+        /**
+         * 如果那不起作用，则使用原始值再次运行它。
+         */
         // if that didn't work, run it again using raw values.
         return method.apply(arr, args.map(toRaw))
       } else {
@@ -79,8 +91,18 @@ function createArrayInstrumentations() {
   return instrumentations
 }
 
+/**
+ * 创建响应劫持
+ * 1. 异常处理
+ * 2. 如果是数组且hasOwn(arrayInstrumentations, key) 则调用 arrayInstrumentations 获取值
+ * 3. 调用 track
+ * 4. 对象迭代 reactive
+ */
 function createGetter(isReadonly = false, shallow = false) {
   return function get(target: Target, key: string | symbol, receiver: object) {
+    /**
+     * 一些 __v_isReactive、__v_isReadonly、__v_raw的处理
+     */
     if (key === ReactiveFlags.IS_REACTIVE) {
       return !isReadonly
     } else if (key === ReactiveFlags.IS_READONLY) {
@@ -100,18 +122,30 @@ function createGetter(isReadonly = false, shallow = false) {
       return target
     }
 
+    /**
+     * 数组操作
+     */
     const targetIsArray = isArray(target)
 
     if (!isReadonly && targetIsArray && hasOwn(arrayInstrumentations, key)) {
       return Reflect.get(arrayInstrumentations, key, receiver)
     }
 
+    /**
+     * 非数组操作
+     */
     const res = Reflect.get(target, key, receiver)
 
+    /**
+     *  其他 调用 track 返回 res 的情况
+     */
     if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
       return res
     }
 
+    /**
+     * 如果可写，那么会调用 track
+     */
     if (!isReadonly) {
       track(target, TrackOpTypes.GET, key)
     }
@@ -126,6 +160,9 @@ function createGetter(isReadonly = false, shallow = false) {
       return shouldUnwrap ? res.value : res
     }
 
+    /**
+     * 如果是对象呢。那么递归
+     */
     if (isObject(res)) {
       // Convert returned value into a proxy as well. we do the isObject check
       // here to avoid invalid value warning. Also need to lazy access readonly
