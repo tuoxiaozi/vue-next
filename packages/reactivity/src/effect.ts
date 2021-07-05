@@ -247,6 +247,12 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
   }
 }
 
+/**
+ * 触发器
+ * 在reactive(Proxy -> createSetter)、ref、triggerRef、computed、updateProps中被触发
+ * 也在definePropery、add、clear中处理delete、add等方法
+ */
+
 export function trigger(
   target: object,
   type: TriggerOpTypes,
@@ -257,11 +263,20 @@ export function trigger(
 ) {
   const depsMap = targetMap.get(target)
   if (!depsMap) {
+    /**
+     * 如果没有经过track就什么也不做
+     */
     // never been tracked
     return
   }
 
+  /**
+   * 这里effects也是内部变量
+   */
   const effects = new Set<ReactiveEffect>()
+  /**
+   * 将 effectsToAdd 数组中的值 add 到 effects Set里面
+   */
   const add = (effectsToAdd: Set<ReactiveEffect> | undefined) => {
     if (effectsToAdd) {
       effectsToAdd.forEach(effect => {
@@ -285,6 +300,11 @@ export function trigger(
   } else {
     // schedule runs for SET | ADD | DELETE
     if (key !== void 0) {
+      /**
+       * 因为 key === 'x'
+			 * 当执行 trigger(obj, 'set', 'x', 2) 时会进入这一段
+			 * 而 depsMap.get(key) 为 Set 类型
+       */
       add(depsMap.get(key))
     }
 
@@ -332,6 +352,11 @@ export function trigger(
     if (effect.options.scheduler) {
       effect.options.scheduler(effect)
     } else {
+      /**
+       * 当执行 trigger(obj, 'set', 'x', 2) 时会进入这一段
+			 * 实际上是遍历 targetMap.get(target)
+			  *执行对应 key的run方法
+       */
       effect()
     }
   }
