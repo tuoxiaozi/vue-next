@@ -138,6 +138,9 @@ export type Plugin =
       install: PluginInstallFunction
     }
 
+/**
+ *  创建app上下文结构， 返回 app对象
+ */
 export function createAppContext(): AppContext {
   return {
     app: null as any,
@@ -167,6 +170,15 @@ export type CreateAppFunction<HostElement> = (
 
 let uid = 0
 
+/**
+ * 直接返回了一个函数createApp （函数是一个高阶函数， 最终返回了createApp函数，而createApp最终返回了app）
+ * 1. 对传递进来的第二个参数，也就是root props进行校验
+ * 2. 调用createAppContext创建appContext对象，赋值给context
+ * 3. 创建变量installedPlugins，Set类型，存储已经安装过的插件
+ * 4. isMounted设为false
+ * 5. 创建app，挂载属性和函数
+ *
+ */
 export function createAppAPI<HostElement>(
   render: RootRenderFunction,
   hydrate?: RootHydrateFunction

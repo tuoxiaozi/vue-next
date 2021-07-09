@@ -32,6 +32,9 @@ let renderer: Renderer<Element> | HydrationRenderer
 
 let enabledHydration = false
 
+/**
+ * ensureRenderer是一个单例模式的函数，会返回一个renderer，如果无renderer则会调用createRenderer进行获取renderer，获得了一个app实例
+ */
 function ensureRenderer() {
   return renderer || (renderer = createRenderer<Node, Element>(rendererOptions))
 }
@@ -53,6 +56,11 @@ export const hydrate = ((...args) => {
   ensureHydrationRenderer().hydrate(...args)
 }) as RootHydrateFunction
 
+/**
+ * createApp核心：
+ * 1. 调用createRenderer的实现
+ * 2. 实例的mount方法的实现
+ */
 export const createApp = ((...args) => {
   const app = ensureRenderer().createApp(...args)
 
@@ -61,6 +69,15 @@ export const createApp = ((...args) => {
     injectCompilerOptionsCheck(app)
   }
 
+  /**
+   * 重写实例的mount方法
+   * 1. 调用normalizeContainer获取根元素容器
+   * 2. 判断template，获取需要渲染的模板
+   * 3. 把容器的innerHTML置空
+   * 4.调用上面实例的mount方法
+   * 5. 删除v-cloak属性，添加data-v-app属性
+   * 6. 返回mount后的代理
+   */
   const { mount } = app
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
     const container = normalizeContainer(containerOrSelector)
@@ -121,6 +138,9 @@ export const createSSRApp = ((...args) => {
 }) as CreateAppFunction<Element>
 
 function injectNativeTagCheck(app: App) {
+  /**
+   * dev环境下注册一个方法：isNativeTag，挂载到app.config下面
+   */
   // Inject `isNativeTag`
   // this is used for component name validation (dev only)
   Object.defineProperty(app.config, 'isNativeTag', {

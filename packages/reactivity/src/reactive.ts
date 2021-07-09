@@ -13,6 +13,9 @@ import {
 } from './collectionHandlers'
 import { UnwrapRef, Ref } from './ref'
 
+/**
+ * 不同的枚举值对应了不同的数据劫持方式，例如 reactive、 shallowReactive 、readonly、 shallowReadonly
+ */
 export const enum ReactiveFlags {
   SKIP = '__v_skip',
   IS_REACTIVE = '__v_isReactive',
@@ -53,6 +56,9 @@ function targetTypeMap(rawType: string) {
   }
 }
 
+/**
+ * 通过 toString.call 判断类型 -> 选用不同的劫持方式
+ */
 function getTargetType(value: Target) {
   return value[ReactiveFlags.SKIP] || !Object.isExtensible(value)
     ? TargetType.INVALID
@@ -94,6 +100,9 @@ export type UnwrapNestedRefs<T> = T extends Ref ? T : UnwrapRef<T>
  */
 export function reactive<T extends object>(target: T): UnwrapNestedRefs<T>
 export function reactive(target: object) {
+  /**
+   * 如果是目标值被标记为readonly，则返回readonly版本
+   */
   // if trying to observe a readonly proxy, return the readonly version.
   if (target && (target as Target)[ReactiveFlags.IS_READONLY]) {
     return target
@@ -208,11 +217,17 @@ function createReactiveObject(
   ) {
     return target
   }
+  /**
+   * 如果target在 依赖的 proxy Map中存在， 就返回target
+   */
   // target already has corresponding Proxy
   const existingProxy = proxyMap.get(target)
   if (existingProxy) {
     return existingProxy
   }
+  /**
+   * 拿到目标值类型，如果为无效， 就返回target
+   */
   // only a whitelist of value types can be observed.
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
@@ -226,10 +241,18 @@ function createReactiveObject(
     target,
     targetType === TargetType.COLLECTION ? collectionHandlers : baseHandlers
   )
+  /**
+   * 赋值proxy Map: { target => proxy }
+   */
   proxyMap.set(target, proxy)
   return proxy
 }
 
+/**
+ * 判断value是否为reactive
+ *  1. 如果是readonly 用__v_skip判断
+ *  2. 否则 用__v_isReactive判断
+ */
 export function isReactive(value: unknown): boolean {
   if (isReadonly(value)) {
     return isReactive((value as Target)[ReactiveFlags.RAW])
@@ -237,20 +260,32 @@ export function isReactive(value: unknown): boolean {
   return !!(value && (value as Target)[ReactiveFlags.IS_REACTIVE])
 }
 
+/**
+ * 判断是否为readonly： 用__v_isReadonly判断
+ */
 export function isReadonly(value: unknown): boolean {
   return !!(value && (value as Target)[ReactiveFlags.IS_READONLY])
 }
 
+/**
+ * 判断是否为Proxy: 如果是reactive或readonly则是
+ */
 export function isProxy(value: unknown): boolean {
   return isReactive(value) || isReadonly(value)
 }
 
+/**
+ * 判断是否为raw: 用__v_raw 或 observed 判断 (observed???)
+ */
 export function toRaw<T>(observed: T): T {
   return (
     (observed && toRaw((observed as Target)[ReactiveFlags.RAW])) || observed
   )
 }
 
+/**
+ * 使用Object.definePropery设置 __v_skip 为 trrue
+ */
 export function markRaw<T extends object>(value: T): T {
   def(value, ReactiveFlags.SKIP, true)
   return value

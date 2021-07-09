@@ -151,6 +151,9 @@ export const invokeArrayFns = (fns: Function[], arg?: any) => {
   }
 }
 
+/**
+ * 使用Object.definePropery设置 不可枚举 的对象键值（普通对象键值是 可枚举的）
+ */
 export const def = (obj: object, key: string | symbol, value: any) => {
   Object.defineProperty(obj, key, {
     configurable: true,
