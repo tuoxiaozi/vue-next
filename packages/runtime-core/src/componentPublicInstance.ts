@@ -259,6 +259,9 @@ export interface ComponentRenderContext {
   _: ComponentInternalInstance
 }
 
+/**
+ * 创建上下文代理
+ */
 export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
   get({ _: instance }: ComponentRenderContext, key: string) {
     const {
@@ -297,8 +300,15 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     // prototype) to memoize what access type a key corresponds to.
     let normalizedProps
     if (key[0] !== '$') {
+      /**
+       * setupState/data/props/ctx
+       * 渲染代理的属性访问缓存中
+       */
       const n = accessCache![key]
       if (n !== undefined) {
+        /**
+         * 从缓存中取
+         */
         switch (n) {
           case AccessTypes.SETUP:
             return setupState[key]
@@ -311,6 +321,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
           // default: just fallthrough
         }
       } else if (setupState !== EMPTY_OBJ && hasOwn(setupState, key)) {
+        /**
+         * 从 setupState | data | props | ctx中取数据
+         */
         accessCache![key] = AccessTypes.SETUP
         return setupState[key]
       } else if (data !== EMPTY_OBJ && hasOwn(data, key)) {
@@ -328,6 +341,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
         accessCache![key] = AccessTypes.CONTEXT
         return ctx[key]
       } else if (!__FEATURE_OPTIONS_API__ || shouldCacheAccess) {
+        /**
+         * 都取不到
+         */
         accessCache![key] = AccessTypes.OTHER
       }
     }
@@ -401,11 +417,17 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     value: any
   ): boolean {
     const { data, setupState, ctx } = instance
+    /**
+     * 给setupState | data 赋值
+     */
     if (setupState !== EMPTY_OBJ && hasOwn(setupState, key)) {
       setupState[key] = value
     } else if (data !== EMPTY_OBJ && hasOwn(data, key)) {
       data[key] = value
     } else if (hasOwn(instance.props, key)) {
+      /**
+       * 不能直接给props赋值
+       */
       __DEV__ &&
         warn(
           `Attempting to mutate prop "${key}". Props are readonly.`,
@@ -414,6 +436,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
       return false
     }
     if (key[0] === '$' && key.slice(1) in instance) {
+      /**
+       * 不能给Vue内部以$开头的保留属性赋值
+       */
       __DEV__ &&
         warn(
           `Attempting to mutate public property "${key}". ` +
@@ -429,12 +454,18 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
           value
         })
       } else {
+        /**
+         * 用户自定义数据赋值
+         */
         ctx[key] = value
       }
     }
     return true
   },
 
+  /**
+   * eg: 'msg' in this 触发has函数(项目中较少使用)
+   */
   has(
     {
       _: { data, setupState, accessCache, ctx, appContext, propsOptions }
@@ -442,6 +473,9 @@ export const PublicInstanceProxyHandlers: ProxyHandler<any> = {
     key: string
   ) {
     let normalizedProps
+    /**
+     * 依次判断key是否存在于 data | setupState| props | 用户数据| 公开属性| 全局属性中， 然后返回结果
+     */
     return (
       accessCache![key] !== undefined ||
       (data !== EMPTY_OBJ && hasOwn(data, key)) ||
@@ -464,6 +498,9 @@ if (__DEV__ && !__TEST__) {
   }
 }
 
+/**
+ * 对has函数的实现做了优化
+ */
 export const RuntimeCompiledPublicInstanceProxyHandlers = extend(
   {},
   PublicInstanceProxyHandlers,
@@ -476,6 +513,9 @@ export const RuntimeCompiledPublicInstanceProxyHandlers = extend(
       return PublicInstanceProxyHandlers.get!(target, key, target)
     },
     has(_: ComponentRenderContext, key: string) {
+      /**
+       * 如果key以_开头或key在全局变量白名单内，则has为false
+       */
       const has = key[0] !== '_' && !isGloballyWhitelisted(key)
       if (__DEV__ && !has && PublicInstanceProxyHandlers.has!(_, key)) {
         warn(

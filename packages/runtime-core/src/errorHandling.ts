@@ -59,6 +59,9 @@ export const ErrorTypeStrings: Record<number | string, string> = {
 
 export type ErrorTypes = LifecycleHooks | ErrorCodes
 
+/**
+ * 对fn尽心包装，当有参数时，传入参数，有错误捕获错误并处理错误
+ */
 export function callWithErrorHandling(
   fn: Function,
   instance: ComponentInternalInstance | null,
@@ -97,6 +100,9 @@ export function callWithAsyncErrorHandling(
   return values
 }
 
+/**
+ * 处理捕获到的错误
+ */
 export function handleError(
   err: unknown,
   instance: ComponentInternalInstance | null,

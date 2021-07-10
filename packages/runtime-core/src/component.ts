@@ -559,10 +559,16 @@ export function setupComponent(
   isInSSRComponentSetup = isSSR
 
   const { props, children } = instance.vnode
+  /**
+   * 判断是否是一个有状态的组件
+   */
   const isStateful = isStatefulComponent(instance)
   initProps(instance, props, isStateful, isSSR)
   initSlots(instance, children)
 
+  /**
+   * 设置有状态的组件实例
+   */
   const setupResult = isStateful
     ? setupStatefulComponent(instance, isSSR)
     : undefined
@@ -570,6 +576,13 @@ export function setupComponent(
   return setupResult
 }
 
+/**
+ * 组件初始化
+ * 1. 创建组件上下文代理
+ *  （对渲染上下文instance.ctx 的访问和修改代理到setupState、ctx、data、props中的数据访问和修改）
+ * 2. 判断setup函数
+ * 3. 完成实例设置
+ */
 function setupStatefulComponent(
   instance: ComponentInternalInstance,
   isSSR: boolean
@@ -611,11 +624,17 @@ function setupStatefulComponent(
   // 2. call setup()
   const { setup } = Component
   if (setup) {
+    /**
+     * 如果setup函数带参数，则创建一个setupContext
+     */
     const setupContext = (instance.setupContext =
       setup.length > 1 ? createSetupContext(instance) : null)
 
     currentInstance = instance
     pauseTracking()
+    /**
+     * 执行setup函数，获取结果
+     */
     const setupResult = callWithErrorHandling(
       setup,
       instance,
@@ -651,9 +670,15 @@ function setupStatefulComponent(
         )
       }
     } else {
+      /**
+       * 处理setup执行结果
+       */
       handleSetupResult(instance, setupResult, isSSR)
     }
   } else {
+    /**
+     * 完成组件实例设置
+     */
     finishComponentSetup(instance, isSSR)
   }
 }
@@ -664,6 +689,9 @@ export function handleSetupResult(
   isSSR: boolean
 ) {
   if (isFunction(setupResult)) {
+    /**
+     * setup返回渲染函数
+     */
     // setup returned an inline render function
     if (__NODE_JS__ && (instance.type as ComponentOptions).__ssrInlineRender) {
       // when the function's name is `ssrRender` (compiled by SFC inline mode),
@@ -684,6 +712,10 @@ export function handleSetupResult(
     if (__DEV__ || __FEATURE_PROD_DEVTOOLS__) {
       instance.devtoolsRawSetupState = setupResult
     }
+    /**
+     * 把setup返回的结果变成响应式
+     *（instance.ctx 可以从instance.setupState对应的数据）
+     */
     instance.setupState = proxyRefs(setupResult)
     if (__DEV__) {
       exposeSetupStateOnRenderContext(instance)
@@ -716,6 +748,10 @@ export function registerRuntimeCompiler(_compile: any) {
   compile = _compile
 }
 
+/**
+ * 1. 标准化模板渲染函数
+ * 2. 兼容optionAPI
+ */
 export function finishComponentSetup(
   instance: ComponentInternalInstance,
   isSSR: boolean,
@@ -841,6 +877,9 @@ const attrDevProxyHandlers: ProxyHandler<Data> = {
   }
 }
 
+/**
+ * 判断处理setup函数 (在setup内部可以获取到属性，插槽和派发事件的方法emmit)
+ */
 export function createSetupContext(
   instance: ComponentInternalInstance
 ): SetupContext {

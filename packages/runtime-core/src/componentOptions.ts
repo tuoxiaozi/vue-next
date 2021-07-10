@@ -535,8 +535,14 @@ function createDuplicateChecker() {
 
 export let shouldCacheAccess = true
 
+/**
+ * 兼容Vue2.x
+ */
 export function applyOptions(instance: ComponentInternalInstance) {
   const options = resolveMergedOptions(instance)
+  /**
+   * instance.proxy作为this
+   */
   const publicThis = instance.proxy! as any
   const ctx = instance.ctx
 

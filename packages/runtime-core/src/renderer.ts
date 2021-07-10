@@ -1305,6 +1305,11 @@ function baseCreateRenderer(
     }
   }
 
+  /* 挂载组件
+   * 1. 创建组件实例
+   * 2. 设置组件实例
+   * 3. 设置并运行带副作用的渲染函数
+   */
   const mountComponent: MountComponentFn = (
     initialVNode,
     container,
