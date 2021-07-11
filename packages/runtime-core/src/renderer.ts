@@ -299,7 +299,13 @@ function createDevEffectOptions(
   return {
     scheduler: queueJob,
     allowRecurse: true,
+    /**
+     * 在执行完依收集后，执行onTrack函数,遍历注册的renderTrack钩子函数
+     */
     onTrack: instance.rtc ? e => invokeArrayFns(instance.rtc!, e) : void 0,
+    /**
+     * 在遍历执行effects的时候会执行onTrigger函数，遍历注册的renderTrigger钩子函数
+     */
     onTrigger: instance.rtg ? e => invokeArrayFns(instance.rtg!, e) : void 0
   }
 }
@@ -1430,15 +1436,30 @@ function baseCreateRenderer(
     isSVG,
     optimized
   ) => {
+    /**
+     * 创建响应式的副作用渲染函数
+     */
     // create reactive effect for rendering
     instance.update = effect(function componentEffect() {
       if (!instance.isMounted) {
+        /**
+         * 渲染组件
+         */
         let vnodeHook: VNodeHook | null | undefined
         const { el, props } = initialVNode
+        /**
+         * 获取组件实例上通过onBeforeMount钩子函数和onMounted注册的钩子函数
+         */
         const { bm, m, parent } = instance
 
+        /**
+         * 执行beforeMount钩子函数
+         */
         // beforeMount hook
         if (bm) {
+        /**
+         * bm可能是个数组，依次执行
+         */
           invokeArrayFns(bm)
         }
         // onVnodeBeforeMount
@@ -1458,6 +1479,9 @@ function baseCreateRenderer(
             if (__DEV__) {
               startMeasure(instance, `render`)
             }
+            /**
+             * 渲染组件生成子树vnode
+             */
             instance.subTree = renderComponentRoot(instance)
             if (__DEV__) {
               endMeasure(instance, `render`)
@@ -1499,6 +1523,9 @@ function baseCreateRenderer(
           if (__DEV__) {
             startMeasure(instance, `patch`)
           }
+          /**
+           * 把子树vnode挂载到container中
+           */
           patch(
             null,
             subTree,
@@ -1511,8 +1538,14 @@ function baseCreateRenderer(
           if (__DEV__) {
             endMeasure(instance, `patch`)
           }
+          /**
+           * 保留渲染生成的子树根DOM节点
+           */
           initialVNode.el = subTree.el
         }
+        /**
+         * 执行mounted钩子函数
+         */
         // mounted hook
         if (m) {
           queuePostRenderEffect(m, parentSuspense)
@@ -1559,10 +1592,17 @@ function baseCreateRenderer(
         // #2458: deference mount-only object parameters to prevent memleaks
         initialVNode = container = anchor = null as any
       } else {
+        /**
+         * 更新组件
+         * 获取实例上通过onBeforeUpdate钩子函数和onUpdate注册的钩子函数
+         */
         // updateComponent
         // This is triggered by mutation of component's own state (next: null)
         // OR parent calling processComponent (next: VNode)
         let { next, bu, u, parent, vnode } = instance
+        /**
+         * next表示新的组件vnode
+         */
         let originNext = next
         let vnodeHook: VNodeHook | null | undefined
         if (__DEV__) {
@@ -1571,11 +1611,17 @@ function baseCreateRenderer(
 
         if (next) {
           next.el = vnode.el
+          /**
+           * 更新组件vnode节点信息
+           */
           updateComponentPreRender(instance, next, optimized)
         } else {
           next = vnode
         }
 
+        /**
+         * 执行beforeUpdate钩子函数
+         */
         // beforeUpdate hook
         if (bu) {
           invokeArrayFns(bu)
@@ -1595,21 +1641,39 @@ function baseCreateRenderer(
         if (__DEV__) {
           startMeasure(instance, `render`)
         }
+        /**
+         * 渲染新的子树vnode
+         */
         const nextTree = renderComponentRoot(instance)
         if (__DEV__) {
           endMeasure(instance, `render`)
         }
+        /**
+         * 缓存旧的子树vnode
+         */
         const prevTree = instance.subTree
+        /**
+         * 更新子树vnode
+         */
         instance.subTree = nextTree
 
         if (__DEV__) {
           startMeasure(instance, `patch`)
         }
+        /**
+         * 组件更新核心逻辑，根据新旧子树vnode做patch
+         */
         patch(
           prevTree,
           nextTree,
+          /**
+           * 如果在teleport组件中父节点可能已经改变，所以容器直接找旧树DOM元素的父节点
+           */
           // parent may have changed if it's in a teleport
           hostParentNode(prevTree.el!)!,
+          /**
+           * 缓存更新后的DOM节点
+           */
           // anchor may have changed if it's in a fragment
           getNextHostNode(prevTree),
           instance,
@@ -1619,6 +1683,9 @@ function baseCreateRenderer(
         if (__DEV__) {
           endMeasure(instance, `patch`)
         }
+        /**
+         * 缓存更新后的DOM节点
+         */
         next.el = nextTree.el
         if (originNext === null) {
           // self-triggered update. In case of HOC, update parent component
@@ -1626,6 +1693,9 @@ function baseCreateRenderer(
           // to child component's vnode
           updateHOCHostEl(instance, nextTree.el)
         }
+        /**
+         * 执行updated钩子函数
+         */
         // updated hook
         if (u) {
           queuePostRenderEffect(u, parentSuspense)
@@ -2302,6 +2372,9 @@ function baseCreateRenderer(
 
     const { bum, effects, update, subTree, um } = instance
 
+    /**
+     * 执行beforeUnmount钩子函数
+     */
     // beforeUnmount hook
     if (bum) {
       invokeArrayFns(bum)
@@ -2313,17 +2386,29 @@ function baseCreateRenderer(
       instance.emit('hook:beforeDestroy')
     }
 
+    /**
+     * 清理组件引用的effects副作用函数
+     */
     if (effects) {
       for (let i = 0; i < effects.length; i++) {
         stop(effects[i])
       }
     }
+    /**
+     * 如果一个异步组件在加载前就销毁了，则不会注册副作用渲染函数
+     */
     // update may be null if a component is unmounted before its async
     // setup has resolved.
     if (update) {
       stop(update)
+      /**
+       * 调用unmount销毁子树
+       */
       unmount(subTree, instance, parentSuspense, doRemove)
     }
+    /**
+     * 执行unmounted钩子函数
+     */
     // unmounted hook
     if (um) {
       queuePostRenderEffect(um, parentSuspense)

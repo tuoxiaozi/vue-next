@@ -13,6 +13,11 @@ import { DebuggerEvent, pauseTracking, resetTracking } from '@vue/reactivity'
 
 export { onActivated, onDeactivated } from './components/KeepAlive'
 
+/**
+ * 对注册的hook做一层封装
+ * 1. 生命周期注册
+ * 2. 生命周期执行
+ */
 export function injectHook(
   type: LifecycleHooks,
   hook: Function & { __weh?: Function },
@@ -20,7 +25,13 @@ export function injectHook(
   prepend: boolean = false
 ): Function | undefined {
   if (target) {
+    /**
+     * 封装hook钩子函数并缓存
+     */
     const hooks = target[type] || (target[type] = [])
+    /**
+     * 对于相同的钩子函数，会缓存到_weh中，后续通过schedule的方式去重
+     */
     // cache the error handling wrapper for injected hooks so the same hook
     // can be properly deduped by the scheduler. "__weh" stands for "with error
     // handling".
@@ -30,15 +41,28 @@ export function injectHook(
         if (target.isUnmounted) {
           return
         }
+        /**
+         * 停止依赖收集
+         */
         // disable tracking inside all lifecycle hooks
         // since they can potentially be called inside effects.
         pauseTracking()
+        /**
+         * 设置target为当前运行的组件的实例
+         * 为了确保此时currentInstance和注册钩子实例保持一致
+         */
         // Set currentInstance during hook invocation.
         // This assumes the hook does not synchronously trigger other hooks, which
         // can only be false when the user does something really funky.
         setCurrentInstance(target)
+        /**
+         * 执行钩子函数
+         */
         const res = callWithAsyncErrorHandling(hook, target, type, args)
         setCurrentInstance(null)
+        /**
+         * 恢复依赖收集
+         */
         resetTracking()
         return res
       })
@@ -61,7 +85,14 @@ export function injectHook(
     )
   }
 }
-
+/**
+ * 创建生命周期钩子
+ * 返回injectHook函数,函数逻辑类似，唯一区别是第一个字符串不同(函数柯里化技巧,使函数参保留)
+ * 不使用柯里化版本：
+ *  cosnt onBeforeMount = function(hook, target = currentInstance) {
+ *    injectHook('bm', hook, target)
+ *  }
+ */
 export const createHook = <T extends Function = () => any>(
   lifecycle: LifecycleHooks
 ) => (hook: T, target: ComponentInternalInstance | null = currentInstance) =>

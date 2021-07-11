@@ -112,10 +112,20 @@ export function handleError(
   const contextVNode = instance ? instance.vnode : null
   if (instance) {
     let cur = instance.parent
+    /**
+     * 为了兼容2.x版本，暴露组件实例给钩子函数
+     */
     // the exposed instance is the render proxy to keep it consistent with 2.x
     const exposedInstance = instance.proxy
+    /**
+     * 获取错误信息
+     */
     // in production the hook receives only the error code
     const errorInfo = __DEV__ ? ErrorTypeStrings[type] : type
+    /**
+     * 尝试向上查找所有父组件,执行errorCaptrued钩子函数
+     * errorCaptured本质上是捕获一个来自子孙组件的错误，返回true阻止错误继续向上传播
+     */
     while (cur) {
       const errorCapturedHooks = cur.ec
       if (errorCapturedHooks) {
@@ -141,6 +151,9 @@ export function handleError(
       return
     }
   }
+  /**
+   * 往控制台输出未处理的错误
+   */
   logError(err, type, contextVNode, throwInDev)
 }
 

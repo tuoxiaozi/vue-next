@@ -237,6 +237,9 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
     dep.add(activeEffect)
     activeEffect.deps.push(dep)
     if (__DEV__ && activeEffect.options.onTrack) {
+      /**
+       * 执行onTrack函数
+       */
       activeEffect.options.onTrack({
         effect: activeEffect,
         target,
@@ -339,6 +342,9 @@ export function trigger(
 
   const run = (effect: ReactiveEffect) => {
     if (__DEV__ && effect.options.onTrigger) {
+      /**
+       * 执行onTrigger
+       */
       effect.options.onTrigger({
         effect,
         target,
