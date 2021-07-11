@@ -5,6 +5,14 @@ import { warn } from './warning'
 
 export interface InjectionKey<T> extends Symbol {}
 
+/**
+ * 依赖注入
+ * App -> 跟组件 -> 子组件 (通过原型链来查找来自直接父级提供的数据)
+ * 如果有相同key,会覆盖父级数据
+ * 依赖注入特点： 祖先组件不需要知道那些后代组件在使用它的数据
+ * 后代组件也不需要知道注入的数据来自哪里
+ * 所以不推荐在普通应用程序中使用
+ */
 export function provide<T>(key: InjectionKey<T> | string | number, value: T) {
   if (!currentInstance) {
     if (__DEV__) {
@@ -38,6 +46,9 @@ export function inject<T>(
   defaultValue: T | (() => T),
   treatDefaultAsFactory: true
 ): T
+/**
+ * 通过provides对象的key，层层查找父级通过的数据
+ */
 export function inject(
   key: InjectionKey<any> | string,
   defaultValue?: unknown,
@@ -59,10 +70,16 @@ export function inject(
       // TS doesn't allow symbol as index type
       return provides[key as string]
     } else if (arguments.length > 1) {
+      /**
+       * 第二个参数是默认值，如果查不到数据，则直接返回默认值
+       */
       return treatDefaultAsFactory && isFunction(defaultValue)
         ? defaultValue.call(instance.proxy)
         : defaultValue
     } else if (__DEV__) {
+      /**
+       * 既查不到数据也没有默认值，则在非生产环境报警告
+       */
       warn(`injection "${String(key)}" not found.`)
     }
   } else if (__DEV__) {

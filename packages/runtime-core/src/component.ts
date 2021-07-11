@@ -452,6 +452,9 @@ export function createComponentInstance(
     exposeProxy: null,
     withProxy: null,
     effects: null,
+    /**
+     * 组件实例的provides对象指向父组件实例的provides对象
+     */
     provides: parent ? parent.provides : Object.create(appContext.provides),
     accessCache: null!,
     renderCache: [],
