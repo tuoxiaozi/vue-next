@@ -1394,6 +1394,9 @@ function baseCreateRenderer(
 
   const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
     const instance = (n2.component = n1.component)!
+    /**
+     * 根据新旧子组件vnode判断是否更新子组件
+     */
     if (shouldUpdateComponent(n1, n2, optimized)) {
       if (
         __FEATURE_SUSPENSE__ &&
@@ -1411,15 +1414,27 @@ function baseCreateRenderer(
         }
         return
       } else {
+        /**
+         * 新的子组件vnode赋值给instance.next
+         */
         // normal update
         instance.next = n2
+        /**
+         * 子组件也可能因为数据变化而添加到更新队列里了，移除他们防止对一个子组件重复更新
+         */
         // in case the child component is also queued, remove it to avoid
         // double updating the same child component in the same flush.
         invalidateJob(instance.update)
+        /**
+         * 执行子组件的副作用渲染函数
+         */
         // instance.update is the reactive effect runner.
         instance.update()
       }
     } else {
+      /**
+       * 不需要做更新，只复制属性
+       */
       // no update needed. just copy over properties
       n2.component = n1.component
       n2.el = n1.el
@@ -1457,9 +1472,9 @@ function baseCreateRenderer(
          */
         // beforeMount hook
         if (bm) {
-        /**
-         * bm可能是个数组，依次执行
-         */
+          /**
+           * bm可能是个数组，依次执行
+           */
           invokeArrayFns(bm)
         }
         // onVnodeBeforeMount

@@ -566,6 +566,9 @@ export function setupComponent(
    * 判断是否是一个有状态的组件
    */
   const isStateful = isStatefulComponent(instance)
+  /**
+   * 初始化props
+   */
   initProps(instance, props, isStateful, isSSR)
   initSlots(instance, children)
 
