@@ -279,6 +279,9 @@ export function createBlock(
   return vnode
 }
 
+/**
+ * 通过__v_isVNode标志位判断是否为vNode
+ */
 export function isVNode(value: any): value is VNode {
   return value ? value.__v_isVNode === true : false
 }
@@ -338,7 +341,9 @@ const normalizeRef = ({ ref }: VNodeProps): VNodeNormalizedRefAtom | null => {
 export const createVNode = (__DEV__
   ? createVNodeWithArgsTransform
   : _createVNode) as typeof _createVNode
-
+/**
+ * 创建vnode
+ */
 function _createVNode(
   type: VNodeTypes | ClassComponent | typeof NULL_DYNAMIC_COMPONENT,
   props: (Data & VNodeProps) | null = null,
@@ -379,10 +384,16 @@ function _createVNode(
   if (props) {
     // for reactive or proxy objects, we need to clone it to enable mutation.
     if (isProxy(props) || InternalObjectKey in props) {
+      /**
+       * extend -> Object.assign封装
+       */
       props = extend({}, props)
     }
     let { class: klass, style } = props
     if (klass && !isString(klass)) {
+      /**
+       * 处理 Array/Object类型的class返回拼接的字符串
+       */
       props.class = normalizeClass(klass)
     }
     if (isObject(style)) {

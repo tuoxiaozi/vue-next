@@ -994,6 +994,9 @@ export function formatComponentName(
   return name ? classify(name) : isRoot ? `App` : `Anonymous`
 }
 
+/**
+ * 通过__vccOpts标志位判断是否为函数式组件
+ */
 export function isClassComponent(value: unknown): value is ClassComponent {
   return isFunction(value) && '__vccOpts' in value
 }

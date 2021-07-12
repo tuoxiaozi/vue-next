@@ -1,3 +1,6 @@
+/**
+ * 所有可能会被render函数用到从vue中导入的方法标识
+ */
 export const FRAGMENT = Symbol(__DEV__ ? `Fragment` : ``)
 export const TELEPORT = Symbol(__DEV__ ? `Teleport` : ``)
 export const SUSPENSE = Symbol(__DEV__ ? `Suspense` : ``)
@@ -33,6 +36,9 @@ export const WITH_CTX = Symbol(__DEV__ ? `withCtx` : ``)
 export const UNREF = Symbol(__DEV__ ? `unref` : ``)
 export const IS_REF = Symbol(__DEV__ ? `isRef` : ``)
 
+/**
+ * symbol对应的字符串key 生成render函数代码的是会需要用到字符串
+ */
 // Name mapping for runtime helpers that need to be imported from 'vue' in
 // generated code. Make sure these are correctly exported in the runtime!
 // Using `any` here because TS doesn't allow symbols as index type.
@@ -71,6 +77,9 @@ export const helperNameMap: any = {
   [IS_REF]: `isRef`
 }
 
+/**
+ * 添加其他的helpe进来
+ */
 export function registerRuntimeHelpers(helpers: any) {
   Object.getOwnPropertySymbols(helpers).forEach(s => {
     helperNameMap[s] = helpers[s]

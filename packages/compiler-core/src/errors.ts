@@ -9,6 +9,9 @@ export interface CoreCompilerError extends CompilerError {
   code: ErrorCodes
 }
 
+/**
+ * 默认的错误处理方法
+ */
 export function defaultOnError(error: CompilerError) {
   throw error
 }
@@ -17,6 +20,9 @@ export function defaultOnWarn(msg: CompilerError) {
   __DEV__ && console.warn(`[Vue warn] ${msg.message}`)
 }
 
+/**
+ * 包含完整的编译错误信息提示语句的对象
+ */
 export function createCompilerError<T extends number>(
   code: T,
   loc?: SourceLocation,
@@ -33,6 +39,9 @@ export function createCompilerError<T extends number>(
   return error as any
 }
 
+/**
+ * 错误提示信息集合
+ */
 export const enum ErrorCodes {
   // parse errors
   ABRUPT_CLOSING_OF_EMPTY_COMMENT,
@@ -97,6 +106,9 @@ export const enum ErrorCodes {
   __EXTEND_POINT__
 }
 
+/**
+ * 错误提示信息集合
+ */
 export const errorMessages: Record<ErrorCodes, string> = {
   // parse errors
   [ErrorCodes.ABRUPT_CLOSING_OF_EMPTY_COMMENT]: 'Illegal comment.',

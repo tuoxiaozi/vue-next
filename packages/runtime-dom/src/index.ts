@@ -62,6 +62,9 @@ export const hydrate = ((...args) => {
  * 2. 实例的mount方法的实现
  */
 export const createApp = ((...args) => {
+  /**
+   * 确认render 调用render的createApp得到 app实例
+   */
   const app = ensureRenderer().createApp(...args)
 
   if (__DEV__) {
@@ -78,13 +81,22 @@ export const createApp = ((...args) => {
    * 5. 删除v-cloak属性，添加data-v-app属性
    * 6. 返回mount后的代理
    */
+  /**
+   * 实例的moutn 其实就是调用 render的path
+   */
   const { mount } = app
   app.mount = (containerOrSelector: Element | ShadowRoot | string): any => {
+    /**
+     * 调用app的mount之前处理下选择器
+     */
     const container = normalizeContainer(containerOrSelector)
     if (!container) return
 
     const component = app._component
     if (!isFunction(component) && !component.render && !component.template) {
+      /**
+       * 获取挂载DOM节点内的innerHtml
+       */
       // __UNSAFE__
       // Reason: potential execution of JS expressions in in-DOM template.
       // The user must make sure the in-DOM template is trusted. If it's
@@ -107,11 +119,17 @@ export const createApp = ((...args) => {
 
     // clear content before mounting
     container.innerHTML = ''
+    /**
+     *  调用实例上的mount
+     */
     const proxy = mount(container, false, container instanceof SVGElement)
     if (container instanceof Element) {
       container.removeAttribute('v-cloak')
       container.setAttribute('data-v-app', '')
     }
+    /**
+     * 返回的是组件实例的proxy字段
+     */
     return proxy
   }
 
@@ -137,6 +155,9 @@ export const createSSRApp = ((...args) => {
   return app
 }) as CreateAppFunction<Element>
 
+/**
+ * 注入 是否是原生dom原生元素检测方法
+ */
 function injectNativeTagCheck(app: App) {
   /**
    * dev环境下注册一个方法：isNativeTag，挂载到app.config下面
@@ -149,6 +170,9 @@ function injectNativeTagCheck(app: App) {
   })
 }
 
+/**
+ * 注入 用户自定义元素 检测方法
+ */
 // dev only
 function injectCompilerOptionsCheck(app: App) {
   if (isRuntimeOnly()) {
@@ -187,6 +211,9 @@ function injectCompilerOptionsCheck(app: App) {
   }
 }
 
+/**
+ * 格式化宿主dom容器(使用querySelector获取DOM节点)
+ */
 function normalizeContainer(
   container: Element | ShadowRoot | string
 ): Element | null {
